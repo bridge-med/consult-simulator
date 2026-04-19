@@ -51,6 +51,7 @@ td{padding:2px;border-bottom:1px solid #f1f5f9}
 .sched{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px;margin-bottom:8px}
 .sched input[type=time]{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #bae6fd;border-radius:3px}
 .sched input[type=number]{width:38px;font:700 10px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #bae6fd;border-radius:3px;padding:1px}
+.times{background:#fffbf5;border:1px solid #fed7aa;border-radius:6px;padding:8px;margin-bottom:8px}
 .dchk{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600;transition:.1s;border:1px solid #e2e8f0;background:#fff;color:#475569}
 .dchk input{margin:0}
 .dchk.on{background:#eef2ff;border-color:#6366f1;color:#4338ca}
@@ -60,20 +61,25 @@ td{padding:2px;border-bottom:1px solid #f1f5f9}
 <div class="wrap" id="app"></div>
 <script>
 // ===== 定数 =====
+// 種別定義（表示用）。時間は曜日×モードで独立保持
 const TY=[
-  {k:'exam',l:'診察',m:4,c:'#4f46e5',e:'🩺'},
-  {k:'m1',l:'月1',m:2,c:'#7c3aed',e:'📋'},
-  {k:'round',l:'回診',m:7,c:'#d97706',e:'🚶'},
-  {k:'mri',l:'MRI結果',m:5,c:'#0891b2',e:'🔬'},
-  {k:'inject',l:'注射',m:1,c:'#dc2626',e:'💉'},
-  {k:'newpt',l:'新患BF',m:5,c:'#10b981',e:'🆕'},
+  {k:'exam',l:'診察',c:'#4f46e5',e:'🩺'},
+  {k:'m1',l:'月1',c:'#7c3aed',e:'📋'},
+  {k:'round',l:'回診',c:'#d97706',e:'🚶'},
+  {k:'mri',l:'MRI結果',c:'#0891b2',e:'🔬'},
+  {k:'inject',l:'注射',c:'#dc2626',e:'💉'},
+  {k:'newpt',l:'新患BF',c:'#10b981',e:'🆕'},
 ];
+// モード別の既定時間（分）。曜日初期値として使う
+const DEFAULT_MIN_1={exam:4,m1:2,round:7,mri:5,inject:1,newpt:5};
+const DEFAULT_MIN_2={exam:5,m1:2,round:7,mri:3,inject:1,newpt:8};
+const DEFAULT_MIN=m=>m==='1'?DEFAULT_MIN_1:DEFAULT_MIN_2;
+
 const DAYS=[
   {id:'mon',l:'月'},{id:'tue',l:'火'},{id:'wed',l:'水'},
   {id:'thu',l:'木'},{id:'fri',l:'金'},{id:'sat',l:'土'},
   {id:'sun',l:'日'},
 ];
-// 曜日ごとのデフォルト診察スケジュール
 const DEFAULT_SCHED={
   mon:{as:'9:00',an:6,ps:'15:00',pn:5},
   tue:{as:'9:00',an:6,ps:'15:00',pn:5},
@@ -100,10 +106,10 @@ function initSlotsForSched(m,sch){const n=sch.an+sch.pn;return Array.from({lengt
 let S={
   mode:'1',
   tab:'mon',
-  types:TY.map(t=>({...t})),
   scheduleByDay:clone(DEFAULT_SCHED),
   slotsByMode:null,
-  groups:[],         // [{id, name, dayIds}]
+  minutesByDayMode:null,  // {'1':{dayId:{typeKey:min}},'2':{...}}
+  groups:[],
   showGroupModal:false,
   d:{newPt:12,examNoInj:40,examInj:40,inject:91,mri:3,physUU:500,mDays:19,physDaily:75},
   editing:null,
@@ -113,14 +119,20 @@ S.slotsByMode=(()=>{
   ['1','2'].forEach(m=>{DAYS.forEach(d=>{o[m][d.id]=initSlotsForSched(m,S.scheduleByDay[d.id])})});
   return o;
 })();
+S.minutesByDayMode=(()=>{
+  const o={'1':{},'2':{}};
+  ['1','2'].forEach(m=>{DAYS.forEach(d=>{o[m][d.id]=clone(DEFAULT_MIN(m))})});
+  return o;
+})();
 
-const gt=k=>S.types.find(t=>t.k===k);
+const gt=k=>TY.find(t=>t.k===k);
 const getSched=did=>S.scheduleByDay[did];
+const getMin=(dayId,k)=>S.minutesByDayMode[S.mode][dayId][k];
 const getGroup=gid=>S.groups.find(g=>g.id===gid);
 const groupOfDay=did=>S.groups.find(g=>g.dayIds.includes(did));
-const stm=items=>items.reduce((s,i)=>(gt(i.t)?.m||0)*i.n+s,0);
+const stm=(items,dayId)=>items.reduce((s,i)=>getMin(dayId,i.t)*i.n+s,0);
 const scn=(items,k)=>items.filter(i=>i.t===k).reduce((s,i)=>s+i.n,0);
-const slotAllTime=sl=>sl.lines.reduce((s,l)=>s+stm(l),0);
+const slotAllTime=(sl,dayId)=>sl.lines.reduce((s,l)=>s+stm(l,dayId),0);
 const slotAllCount=sl=>sl.lines.reduce((s,l)=>s+l.reduce((x,i)=>x+i.n,0),0);
 const slotAllType=(sl,k)=>sl.lines.reduce((s,l)=>s+scn(l,k),0);
 const gT=(s,n)=>{const[h,m]=s.split(':').map(Number);return Array.from({length:n},(_,i)=>{const t=h*60+m+i*30,e=t+30;return`${~~(t/60)}:${String(t%60).padStart(2,'0')}-${~~(e/60)}:${String(e%60).padStart(2,'0')}`})};
@@ -139,7 +151,6 @@ const operDaysCount=()=>DAYS.filter(d=>{const s=getSched(d.id);return s.an+s.pn>
 // ===== アクション =====
 function sMode(m){S.mode=m;S.editing=null;R()}
 function sT(t){S.tab=t;S.editing=null;R()}
-function sV(k,v){S.types.find(t=>t.k===k).m=v;R()}
 function sD(k,v){S.d[k]=v;R()}
 function openEdit(dayId,idx){S.editing={dayId,idx};R()}
 function closeEdit(){S.editing=null;R()}
@@ -162,14 +173,14 @@ function renameGroup(gid,name){
 function toggleDayInGroup(gid,dayId,checked){
   const g=getGroup(gid);if(!g)return;
   if(checked){
-    // 他グループからは外す
     S.groups.forEach(og=>{if(og.id!==gid)og.dayIds=og.dayIds.filter(d=>d!==dayId)});
-    // 既存メンバーがいれば先頭メンバーの設定をコピー
     if(g.dayIds.length>0&&!g.dayIds.includes(dayId)){
       const tmpl=g.dayIds[0];
       S.scheduleByDay[dayId]=clone(S.scheduleByDay[tmpl]);
       S.slotsByMode['1'][dayId]=clone(S.slotsByMode['1'][tmpl]);
       S.slotsByMode['2'][dayId]=clone(S.slotsByMode['2'][tmpl]);
+      S.minutesByDayMode['1'][dayId]=clone(S.minutesByDayMode['1'][tmpl]);
+      S.minutesByDayMode['2'][dayId]=clone(S.minutesByDayMode['2'][tmpl]);
     }
     if(!g.dayIds.includes(dayId))g.dayIds.push(dayId);
     g.dayIds.sort((a,b)=>DAYS.findIndex(d=>d.id===a)-DAYS.findIndex(d=>d.id===b));
@@ -198,6 +209,11 @@ function propagateSched(dayId){
     }
   });
 }
+function propagateTimes(dayId){
+  const g=groupOfDay(dayId);if(!g)return;
+  const src=JSON.stringify(S.minutesByDayMode[S.mode][dayId]);
+  g.dayIds.forEach(d=>{if(d!==dayId)S.minutesByDayMode[S.mode][d]=JSON.parse(src)});
+}
 
 function uSl(dayId,idx,li,ii,f,v){
   const sl=S.slotsByMode[S.mode][dayId][idx];
@@ -220,6 +236,16 @@ function rstAll(dayId){
   const sch=S.scheduleByDay[dayId];
   S.slotsByMode[S.mode][dayId]=initSlotsForSched(S.mode,sch);
   propagateSlots(dayId);S.editing=null;R();
+}
+
+// 1件あたり時間の操作
+function setTime(dayId,k,v){
+  S.minutesByDayMode[S.mode][dayId][k]=Math.max(0.5,Math.min(15,v));
+  propagateTimes(dayId);R();
+}
+function rstTimes(dayId){
+  S.minutesByDayMode[S.mode][dayId]=clone(DEFAULT_MIN(S.mode));
+  propagateTimes(dayId);R();
 }
 
 // スケジュール変更時のスロット数合わせ
@@ -252,9 +278,9 @@ function togglePM(dayId,checked){
 function rstSched(dayId){updateSched(dayId,clone(DEFAULT_SCHED[dayId]))}
 
 // ===== 描画パーツ =====
-function bar(items,ht=26){
+function bar(items,ht,dayId){
   let u=0;
-  const sg=items.map(i=>{const t=gt(i.t),m=t.m*i.n;u+=m;return{m,c:t.c,l:`${t.e}${i.n>1?'×'+i.n:''}`}});
+  const sg=items.map(i=>{const t=gt(i.t),mn=getMin(dayId,i.t),m=mn*i.n;u+=m;return{m,c:t.c,l:`${t.e}${i.n>1?'×'+i.n:''}`}});
   const buf=30-u;
   let o=`<div class="sb" style="height:${ht}px">`;
   sg.forEach(s=>{o+=`<div class="ss" style="width:${(s.m/30)*100}%;background:${s.c}">${s.l}</div>`});
@@ -265,14 +291,14 @@ function bar(items,ht=26){
 }
 function edLineHTML(dayId,idx,li){
   const items=S.slotsByMode[S.mode][dayId][idx].lines[li];let h='';
-  items.forEach((it,i)=>{const t=gt(it.t);
-    h+=`<div class="se"><select onchange="uSl('${dayId}',${idx},${li},${i},'t',this.value)">${S.types.map(s=>`<option value="${s.k}"${s.k===it.t?' selected':''}>${s.e}${s.l}</option>`).join('')}</select><span style="font-size:8px;color:#94a3b8">×</span><input type="number" min="0" max="15" value="${it.n}" onchange="uSl('${dayId}',${idx},${li},${i},'n',+this.value)"><span style="font-size:8px;color:#94a3b8">${t.m*it.n}分</span><button class="rbtn" onclick="rSl('${dayId}',${idx},${li},${i})">✕</button></div>`});
+  items.forEach((it,i)=>{const t=gt(it.t),mn=getMin(dayId,it.t);
+    h+=`<div class="se"><select onchange="uSl('${dayId}',${idx},${li},${i},'t',this.value)">${TY.map(s=>`<option value="${s.k}"${s.k===it.t?' selected':''}>${s.e}${s.l}</option>`).join('')}</select><span style="font-size:8px;color:#94a3b8">×</span><input type="number" min="0" max="15" value="${it.n}" onchange="uSl('${dayId}',${idx},${li},${i},'n',+this.value)"><span style="font-size:8px;color:#94a3b8">${mn*it.n}分</span><button class="rbtn" onclick="rSl('${dayId}',${idx},${li},${i})">✕</button></div>`});
   h+=`<button class="abtn" onclick="aSl('${dayId}',${idx},${li})">+追加</button>`;return h;
 }
 
 // ===== 集計 =====
 function calcSum(){
-  const wk={};S.types.forEach(t=>wk[t.k]=0);
+  const wk={};TY.forEach(t=>wk[t.k]=0);
   let tS=0,tU=0,tA=0;
   const nLines=S.mode==='1'?1:2;
   const dy={};
@@ -280,11 +306,11 @@ function calcSum(){
     const slots=S.slotsByMode[S.mode][d.id];
     const sch=S.scheduleByDay[d.id];
     const n=sch.an+sch.pn;
-    const daySum={};S.types.forEach(t=>daySum[t.k]=0);
-    slots.forEach(sl=>{S.types.forEach(t=>daySum[t.k]+=slotAllType(sl,t.k))});
-    S.types.forEach(t=>wk[t.k]+=daySum[t.k]);
+    const daySum={};TY.forEach(t=>daySum[t.k]=0);
+    slots.forEach(sl=>{TY.forEach(t=>daySum[t.k]+=slotAllType(sl,t.k))});
+    TY.forEach(t=>wk[t.k]+=daySum[t.k]);
     tS+=n;tA+=n*30*nLines;
-    slots.forEach(sl=>tU+=slotAllTime(sl));
+    slots.forEach(sl=>tU+=slotAllTime(sl,d.id));
     dy[d.id]=daySum;
   });
   return {wk,tS,tU,tA,dy,mM1:wk.m1*4.3};
@@ -292,7 +318,6 @@ function calcSum(){
 
 // ===== メイン描画 =====
 function R(){
-  // タブ有効性の担保
   if(S.tab!=='summary'&&!getGroup(S.tab)&&!getD(S.tab))S.tab='mon';
 
   const d=S.d,sm=calcSum(),ap=document.getElementById('app');
@@ -302,7 +327,7 @@ function R(){
   const oper=operDaysCount();
 
   let h=`<div class="hd"><h1>診察オペレーション設計シミュレーター</h1>
-    <p>1診/2診 × 曜日グループ自由編成 × 診察時間カスタム</p></div>
+    <p>1診/2診 × 曜日グループ自由編成 × 診察時間・1件あたり時間カスタム</p></div>
     <div class="tg-row">
       <div class="tg"><span class="tg-l">体制</span>
         <button class="tg-b${S.mode==='1'?' on':''}" onclick="sMode('1')">1診</button>
@@ -311,7 +336,6 @@ function R(){
       <button class="tg-b accent" onclick="openGroupModal()">🔗 グループ編集 ${S.groups.length?`(${S.groups.length})`:''}</button>
     </div>`;
 
-  // タブリスト生成
   const groupedIds=new Set(S.groups.flatMap(g=>g.dayIds));
   const ungroupedDays=DAYS.filter(d=>!groupedIds.has(d.id));
   const tabList=[
@@ -321,12 +345,8 @@ function R(){
   ];
   h+=`<div class="tabs">${tabList.map(t=>`<button class="tb${t.grp?' grp':''}${S.tab===t.k?' on':''}" onclick="sT('${t.k}')">${t.l}</button>`).join('')}</div>`;
 
-  // サイドバー
+  // サイドバー（需要のみ）
   h+=`<div class="g"><div>
-    <div class="c" style="margin-bottom:6px">
-      <div class="ct" style="color:#b45309">⏱ 1件あたり時間</div>
-      ${S.types.map(t=>`<div class="sg"><div class="sl"><span>${t.e}${t.l}</span><span class="sv">${t.m}分</span></div><input type="range" min="0.5" max="15" step="0.5" value="${t.m}" oninput="sV('${t.k}',+this.value)"></div>`).join('')}
-    </div>
     <div class="c">
       <div class="ct" style="color:#4f46e5">📊 需要/日</div>
       ${[
@@ -341,6 +361,9 @@ function R(){
         🆕新患: <b>${d.newPt}</b> | 🔬MRI: <b>${d.mri}</b>
         <div style="margin-top:3px;padding-top:3px;border-top:1px solid #ddd6fe;font-size:8px;color:#6366f1">稼働日: <b>${oper}日/週</b></div>
       </div>
+    </div>
+    <div class="c" style="margin-top:6px;font-size:9px;color:#64748b;line-height:1.5">
+      💡 <b>1件あたり時間</b>は右側パネルに移動しました。<br>各曜日×1診/2診ごとに独立して設定できます。
     </div>
   </div><div>`;
 
@@ -391,7 +414,25 @@ function renderSchedEditor(dayId){
   </div>`;
 }
 
-// ---- グループタブの表示（代表日で編集） ----
+// ---- 1件あたり時間エディタ（曜日×モード） ----
+function renderTimesEditor(dayId){
+  const g=groupOfDay(dayId);
+  const scope=g?`${g.name} (${g.dayIds.map(id=>getD(id).l).join('')}) 全日に同期`:`${getD(dayId).l}曜のみ`;
+  return `<div class="times">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:800;color:#b45309">⏱ 1件あたり時間 <span style="color:#64748b;font-weight:600">(${S.mode}診・${scope})</span></div>
+      <button class="rstbtn" onclick="rstTimes('${dayId}')">デフォルトに戻す</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${TY.map(t=>{
+        const mn=getMin(dayId,t.k);
+        return `<div class="sg" style="margin-bottom:0"><div class="sl"><span>${t.e}${t.l}</span><span class="sv">${mn}分</span></div><input type="range" min="0.5" max="15" step="0.5" value="${mn}" oninput="setTime('${dayId}','${t.k}',+this.value)"></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- グループタブの表示 ----
 function renderScheduleGroup(gid,d,ed){
   const g=getGroup(gid);
   if(!g)return '';
@@ -413,6 +454,7 @@ function renderScheduleGroup(gid,d,ed){
     </div>
     <div style="font-size:9px;color:#64748b;margin-bottom:6px">${sch.an+sch.pn}枠/日 × ${g.dayIds.length}日分 ｜ 編集はグループ内全曜日に同期</div>`;
   h+=renderSchedEditor(rep);
+  h+=renderTimesEditor(rep);
   h+=renderSlotTable(rep,d,ed);
   h+=renderDayCap(rep);
   h+=renderRoundSim(rep,d);
@@ -420,7 +462,7 @@ function renderScheduleGroup(gid,d,ed){
   return h;
 }
 
-// ---- 曜日タブの表示（その曜日のみ） ----
+// ---- 曜日タブの表示 ----
 function renderScheduleDay(dayId,d,ed){
   const day=getD(dayId);
   const sch=getSched(dayId);
@@ -431,6 +473,7 @@ function renderScheduleDay(dayId,d,ed){
     </div>
     <div style="font-size:9px;color:#64748b;margin-bottom:6px">${sch.an+sch.pn}枠/日 ｜ この曜日のみ編集（グループに入れれば他曜日と同期）</div>`;
   h+=renderSchedEditor(dayId);
+  h+=renderTimesEditor(dayId);
   h+=renderSlotTable(dayId,d,ed);
   h+=renderDayCap(dayId);
   h+=renderRoundSim(dayId,d);
@@ -467,7 +510,7 @@ function renderSlotTable(dayId,d,ed){
     const cnt=slotAllCount(sl);
     h+=`<tr class="slot-row${isSel?' sel':''}" onclick="openEdit('${dayId}',${r.i})">
       <td style="text-align:left;font-size:9px;font-weight:600;color:#475569;padding-left:4px">${r.t}${sl.custom?'<span style="color:#f59e0b;font-size:7px"> ★</span>':''}</td>
-      ${sl.lines.map(line=>`<td style="padding:1px">${bar(line,22)}</td>`).join('')}
+      ${sl.lines.map(line=>`<td style="padding:1px">${bar(line,22,dayId)}</td>`).join('')}
       <td style="font-weight:700;font-size:10px">${cnt}</td>
       <td style="font-size:8px;color:#94a3b8">✎</td>
     </tr>`;
@@ -480,12 +523,12 @@ function renderSlotTable(dayId,d,ed){
 function renderDayCap(dayId){
   const slots=S.slotsByMode[S.mode][dayId];
   const sch=getSched(dayId);
-  const cap={};S.types.forEach(t=>cap[t.k]=0);
-  slots.forEach(sl=>{S.types.forEach(t=>cap[t.k]+=slotAllType(sl,t.k))});
+  const cap={};TY.forEach(t=>cap[t.k]=0);
+  slots.forEach(sl=>{TY.forEach(t=>cap[t.k]+=slotAllType(sl,t.k))});
   return `<div style="background:#f8fafc;border-radius:6px;padding:8px;margin-bottom:6px">
     <div style="font-size:10px;font-weight:700;color:#334155;margin-bottom:4px">1日キャパ（${sch.an+sch.pn}枠・${S.mode}診）</div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
-      ${S.types.map(t=>`<div style="text-align:center;padding:4px;border-radius:4px;background:${t.c}08;border:1px solid ${t.c}25"><div style="font-size:7px;color:${t.c}">${t.e}${t.l}</div><div style="font-size:14px;font-weight:900;color:${t.c}">${cap[t.k]}</div></div>`).join('')}
+      ${TY.map(t=>`<div style="text-align:center;padding:4px;border-radius:4px;background:${t.c}08;border:1px solid ${t.c}25"><div style="font-size:7px;color:${t.c}">${t.e}${t.l}</div><div style="font-size:14px;font-weight:900;color:${t.c}">${cap[t.k]}</div></div>`).join('')}
     </div>
   </div>`;
 }
@@ -502,7 +545,8 @@ function renderRoundSim(dayId,d){
     </div>`;
   }
   const perRound=d.physDaily/roundTotal;
-  const secPP=(gt('round').m*60)/perRound;
+  const roundMin=getMin(dayId,'round');
+  const secPP=(roundMin*60)/perRound;
   return `<div class="rnd">
     <div style="font-size:10px;font-weight:800;color:#92400e;margin-bottom:4px">🚶 回診シミュレーション</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px">
@@ -532,17 +576,17 @@ function renderSummary(sm,d,oper){
     <div style="font-size:13px;font-weight:800;margin-bottom:10px">週間・月間 サマリー（${S.mode}診体制 / 稼働${oper}日）</div>
     <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:4px">曜日別 内訳</div>
     <table style="margin-bottom:12px"><thead><tr><th style="text-align:left">曜</th><th>グループ</th><th>枠</th><th>時間</th>
-      ${S.types.map(t=>`<th>${t.e}</th>`).join('')}</tr></thead><tbody>
+      ${TY.map(t=>`<th>${t.e}</th>`).join('')}</tr></thead><tbody>
       ${DAYS.map(day=>{
         const sch=S.scheduleByDay[day.id];
         const hrs=sch.pn>0?`${sch.as}-${endTime(sch.as,sch.an)}/${sch.ps}-${endTime(sch.ps,sch.pn)}`:(sch.an>0?`${sch.as}-${endTime(sch.as,sch.an)}`:'休診');
         const g=groupOfDay(day.id);
         return `<tr><td style="font-weight:700;text-align:left">${day.l}</td><td style="font-size:8px;color:#64748b">${g?g.name:'-'}</td><td>${sch.an+sch.pn}</td><td style="font-size:8px;color:#64748b">${hrs}</td>
-          ${S.types.map(t=>`<td style="font-weight:700;color:${t.c}">${sm.dy[day.id][t.k]}</td>`).join('')}
+          ${TY.map(t=>`<td style="font-weight:700;color:${t.c}">${sm.dy[day.id][t.k]}</td>`).join('')}
         </tr>`;
       }).join('')}
       <tr style="background:#f1f5f9;font-weight:800"><td style="text-align:left">週合計</td><td></td><td>${sm.tS}</td><td></td>
-        ${S.types.map(t=>`<td style="color:${t.c}">${sm.wk[t.k]}</td>`).join('')}</tr>
+        ${TY.map(t=>`<td style="color:${t.c}">${sm.wk[t.k]}</td>`).join('')}</tr>
     </tbody></table>
     <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:6px">月間 需要vs供給</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px">
@@ -568,7 +612,7 @@ function renderSummary(sm,d,oper){
         </div>
         <span style="font-size:14px;font-weight:900;color:${uP>115?'#dc2626':uP>100?'#d97706':'#16a34a'}">${uP.toFixed(0)}%</span>
       </div>
-      <div style="font-size:8px;color:#94a3b8;margin-top:1px">${sm.tU}分 / ${sm.tA}分（${S.mode}診 = 30分×枠数×${S.mode==='1'?1:2}列）</div>
+      <div style="font-size:8px;color:#94a3b8;margin-top:1px">${sm.tU}分 / ${sm.tA}分（${S.mode}診 = 30分×枠数×${S.mode==='1'?1:2}列、曜日ごとの1件あたり時間で計算）</div>
     </div>
   </div>`;
   return h;
@@ -590,26 +634,26 @@ function renderModal(ed,d){
 
   let linesHtml='';
   if(sl.lines.length===1){
-    const t=stm(sl.lines[0]),buf=30-t;
+    const t=stm(sl.lines[0],ed.dayId),buf=30-t;
     linesHtml=`<div class="ep ep1" style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:800;color:#4f46e5;margin-bottom:4px">
         使用${t}/30分${t>30?' <span style="color:#dc2626">⚠超過</span>':buf>0?` → <span style="color:#10b981">🆕BF${buf}分</span>`:''}
       </div>
       ${edLineHTML(ed.dayId,ed.idx,0)}
-      <div style="margin-top:6px">${bar(sl.lines[0],32)}</div>
+      <div style="margin-top:6px">${bar(sl.lines[0],32,ed.dayId)}</div>
     </div>`;
   } else {
-    const aT=stm(sl.lines[0]),bT=stm(sl.lines[1]);
+    const aT=stm(sl.lines[0],ed.dayId),bT=stm(sl.lines[1],ed.dayId);
     linesHtml=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div class="ep epa">
         <div style="font-size:11px;font-weight:800;color:#1e40af;margin-bottom:4px">A診 (${aT}/30分)${aT>30?' <span style="color:#dc2626">⚠超過</span>':aT<30?` <span style="color:#10b981">→🆕BF${30-aT}分</span>`:''}</div>
         ${edLineHTML(ed.dayId,ed.idx,0)}
-        <div style="margin-top:6px">${bar(sl.lines[0])}</div>
+        <div style="margin-top:6px">${bar(sl.lines[0],26,ed.dayId)}</div>
       </div>
       <div class="ep epb">
         <div style="font-size:11px;font-weight:800;color:#166534;margin-bottom:4px">B診 (${bT}/30分)${bT>30?' <span style="color:#dc2626">⚠超過</span>':bT<30?` <span style="color:#10b981">→🆕BF${30-bT}分</span>`:''}</div>
         ${edLineHTML(ed.dayId,ed.idx,1)}
-        <div style="margin-top:6px">${bar(sl.lines[1])}</div>
+        <div style="margin-top:6px">${bar(sl.lines[1],26,ed.dayId)}</div>
       </div>
     </div>`;
   }
@@ -623,7 +667,7 @@ function renderModal(ed,d){
       </div>
       ${linesHtml}
       ${roundInSlot>0?`<div class="rnd">
-        <div style="font-size:9px;color:#92400e">🚶 この枠の回診: 物療${(d.physDaily/(sch.an+sch.pn)).toFixed(1)}名/枠 ÷ 回診${roundInSlot}回 = <b>1回あたり${ptsPerRound.toFixed(1)}名</b>チェック (${(gt('round').m*60/ptsPerRound).toFixed(0)}秒/名)</div>
+        <div style="font-size:9px;color:#92400e">🚶 この枠の回診: 物療${(d.physDaily/(sch.an+sch.pn)).toFixed(1)}名/枠 ÷ 回診${roundInSlot}回 = <b>1回あたり${ptsPerRound.toFixed(1)}名</b>チェック (${(getMin(ed.dayId,'round')*60/ptsPerRound).toFixed(0)}秒/名)</div>
       </div>`:''}
     </div>
   </div>`;
@@ -636,7 +680,7 @@ function renderGroupModal(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
           <div style="font-size:14px;font-weight:900">🔗 グループ編集</div>
-          <div style="font-size:9px;color:#64748b">グループ内の曜日は診察時間・枠構成が同期されます</div>
+          <div style="font-size:9px;color:#64748b">グループ内の曜日は診察時間・枠構成・1件あたり時間が全て同期されます</div>
         </div>
         <button onclick="closeGroupModal()" style="font:800 16px/1 sans-serif;background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px 8px">✕</button>
       </div>
