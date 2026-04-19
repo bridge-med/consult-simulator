@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>診察オペレーション設計シミュレーター</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:#f0f2f5;color:#0f172a;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:10px}
+.hd{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 20px;color:#fff;margin-bottom:10px}
+.hd h1{font-size:15px;font-weight:900}.hd p{font-size:10px;color:#94a3b8;margin-top:2px}
+.tg-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.tg{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px}
+.tg-l{font-size:9px;font-weight:700;color:#64748b;margin-right:4px}
+.tg-b{padding:4px 10px;border-radius:4px;border:none;cursor:pointer;font:800 10px/1 'Noto Sans JP',sans-serif;background:#f1f5f9;color:#475569;transition:.15s}
+.tg-b.on{background:#1a1a2e;color:#fff}
+.tg-b.accent{background:#6366f1;color:#fff}
+.tabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
+.tb{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font:800 11px/1 'Noto Sans JP',sans-serif;background:#e2e8f0;color:#475569;transition:.15s}
+.tb.on{background:#1a1a2e;color:#fff}
+.tb.grp{background:#eef2ff;color:#4338ca}
+.tb.grp.on{background:#4338ca;color:#fff}
+.g{display:grid;grid-template-columns:224px 1fr;gap:8px}
+.c{background:#fff;border-radius:8px;padding:10px;border:1px solid #e2e8f0}
+.ct{font-size:10px;font-weight:800;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #e2e8f0}
+.sg{margin-bottom:6px}.sl{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:1px}
+.sv{font-size:12px;font-weight:900;color:#0f172a}
+input[type=range]{width:100%;height:4px;cursor:pointer;accent-color:#6366f1}
+.sb{display:flex;height:26px;border-radius:4px;overflow:hidden;border:1px solid #cbd5e1}
+.ss{display:flex;align-items:center;justify-content:center;font-size:7.5px;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden}
+.se{margin-bottom:2px;display:flex;align-items:center;gap:3px}
+.se select{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #d1d5db;border-radius:3px;width:72px}
+.se input[type=number]{width:30px;font:700 11px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #d1d5db;border-radius:3px;padding:1px}
+.abtn{font:9px/1 'Noto Sans JP',sans-serif;color:#6366f1;background:none;border:1px dashed #a5b4fc;border-radius:3px;padding:1px 6px;cursor:pointer;margin-top:2px}
+.rbtn{font-size:9px;color:#bbb;background:none;border:none;cursor:pointer;padding:1px}
+.slot-row{cursor:pointer;transition:background .1s}
+.slot-row:hover{background:#f8fafc}
+.slot-row.sel{background:#eef2ff;outline:2px solid #6366f1;outline-offset:-1px}
+.ep{border-radius:6px;padding:8px}.epa{background:#eff6ff}.epb{background:#f0fdf4}.ep1{background:#eef2ff}
+.sc{border-radius:6px;padding:8px;border:1px solid}
+.sok{background:#f0fdf4;border-color:#bbf7d0}.sng{background:#fef2f2;border-color:#fecaca}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th{padding:3px;text-align:center;border-bottom:2px solid #e2e8f0;font-weight:700;color:#64748b;background:#f8fafc;font-size:9px}
+td{padding:2px;border-bottom:1px solid #f1f5f9}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:10px;padding:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.rstbtn{font:600 9px/1 'Noto Sans JP',sans-serif;color:#64748b;background:#f1f5f9;border:1px solid #d1d5db;border-radius:3px;padding:2px 8px;cursor:pointer;margin-left:4px}
+.rnd{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px;margin-top:6px}
+.sched{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px;margin-bottom:8px}
+.sched input[type=time]{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #bae6fd;border-radius:3px}
+.sched input[type=number]{width:38px;font:700 10px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #bae6fd;border-radius:3px;padding:1px}
+.dchk{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600;transition:.1s;border:1px solid #e2e8f0;background:#fff;color:#475569}
+.dchk input{margin:0}
+.dchk.on{background:#eef2ff;border-color:#6366f1;color:#4338ca}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+// ===== 定数 =====
+const TY=[
+  {k:'exam',l:'診察',m:4,c:'#4f46e5',e:'🩺'},
+  {k:'m1',l:'月1',m:2,c:'#7c3aed',e:'📋'},
+  {k:'round',l:'回診',m:7,c:'#d97706',e:'🚶'},
+  {k:'mri',l:'MRI結果',m:5,c:'#0891b2',e:'🔬'},
+  {k:'inject',l:'注射',m:1,c:'#dc2626',e:'💉'},
+  {k:'newpt',l:'新患BF',m:5,c:'#10b981',e:'🆕'},
+];
+const DAYS=[
+  {id:'mon',l:'月'},{id:'tue',l:'火'},{id:'wed',l:'水'},
+  {id:'thu',l:'木'},{id:'fri',l:'金'},{id:'sat',l:'土'},
+  {id:'sun',l:'日'},
+];
+// 曜日ごとのデフォルト診察スケジュール
+const DEFAULT_SCHED={
+  mon:{as:'9:00',an:6,ps:'15:00',pn:5},
+  tue:{as:'9:00',an:6,ps:'15:00',pn:5},
+  wed:{as:'9:00',an:6,ps:'15:00',pn:5},
+  thu:{as:'9:00',an:6,ps:'15:00',pn:5},
+  fri:{as:'9:00',an:6,ps:'15:00',pn:5},
+  sat:{as:'9:00',an:7,ps:null,pn:0},
+  sun:{as:'9:00',an:0,ps:null,pn:0},
+};
+
+const def1=()=>[[{t:'exam',n:4},{t:'inject',n:6},{t:'m1',n:1},{t:'newpt',n:1}]];
+const def2=()=>[
+  [{t:'exam',n:2},{t:'m1',n:3},{t:'round',n:1},{t:'inject',n:2}],
+  [{t:'exam',n:3},{t:'inject',n:2},{t:'newpt',n:1}],
+];
+
+// ===== ヘルパ =====
+const getD=did=>DAYS.find(d=>d.id===did);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function newSlotForMode(m){const def=m==='1'?def1:def2;return{lines:clone(def()),custom:false}}
+function initSlotsForSched(m,sch){const n=sch.an+sch.pn;return Array.from({length:n},()=>newSlotForMode(m))}
+
+// ===== 状態 =====
+let S={
+  mode:'1',
+  tab:'mon',
+  types:TY.map(t=>({...t})),
+  scheduleByDay:clone(DEFAULT_SCHED),
+  slotsByMode:null,
+  groups:[],         // [{id, name, dayIds}]
+  showGroupModal:false,
+  d:{newPt:12,examNoInj:40,examInj:40,inject:91,mri:3,physUU:500,mDays:19,physDaily:75},
+  editing:null,
+};
+S.slotsByMode=(()=>{
+  const o={'1':{},'2':{}};
+  ['1','2'].forEach(m=>{DAYS.forEach(d=>{o[m][d.id]=initSlotsForSched(m,S.scheduleByDay[d.id])})});
+  return o;
+})();
+
+const gt=k=>S.types.find(t=>t.k===k);
+const getSched=did=>S.scheduleByDay[did];
+const getGroup=gid=>S.groups.find(g=>g.id===gid);
+const groupOfDay=did=>S.groups.find(g=>g.dayIds.includes(did));
+const stm=items=>items.reduce((s,i)=>(gt(i.t)?.m||0)*i.n+s,0);
+const scn=(items,k)=>items.filter(i=>i.t===k).reduce((s,i)=>s+i.n,0);
+const slotAllTime=sl=>sl.lines.reduce((s,l)=>s+stm(l),0);
+const slotAllCount=sl=>sl.lines.reduce((s,l)=>s+l.reduce((x,i)=>x+i.n,0),0);
+const slotAllType=(sl,k)=>sl.lines.reduce((s,l)=>s+scn(l,k),0);
+const gT=(s,n)=>{const[h,m]=s.split(':').map(Number);return Array.from({length:n},(_,i)=>{const t=h*60+m+i*30,e=t+30;return`${~~(t/60)}:${String(t%60).padStart(2,'0')}-${~~(e/60)}:${String(e%60).padStart(2,'0')}`})};
+
+const pad=s=>{if(!s)return'00:00';const[h,m]=s.split(':');return`${String(h).padStart(2,'0')}:${String(m||'00').padStart(2,'0')}`};
+const endTime=(s,n)=>{const[h,m]=s.split(':').map(Number);const t=h*60+m+n*30;return`${~~(t/60)}:${String(t%60).padStart(2,'0')}`};
+function breakMin(sch){
+  if(!sch.ps||sch.pn===0||sch.an===0)return null;
+  const[ah,am]=sch.as.split(':').map(Number);
+  const[ph,pm]=sch.ps.split(':').map(Number);
+  return(ph*60+pm)-(ah*60+am+sch.an*30);
+}
+const repOfGroup=g=>g.dayIds[0];
+const operDaysCount=()=>DAYS.filter(d=>{const s=getSched(d.id);return s.an+s.pn>0}).length;
+
+// ===== アクション =====
+function sMode(m){S.mode=m;S.editing=null;R()}
+function sT(t){S.tab=t;S.editing=null;R()}
+function sV(k,v){S.types.find(t=>t.k===k).m=v;R()}
+function sD(k,v){S.d[k]=v;R()}
+function openEdit(dayId,idx){S.editing={dayId,idx};R()}
+function closeEdit(){S.editing=null;R()}
+
+// グループ操作
+function openGroupModal(){S.showGroupModal=true;R()}
+function closeGroupModal(){S.showGroupModal=false;R()}
+function addGroup(){
+  S.groups.push({id:'g'+Date.now()+Math.random().toString(36).slice(2,6),name:'グループ'+(S.groups.length+1),dayIds:[]});
+  R();
+}
+function deleteGroup(gid){
+  S.groups=S.groups.filter(g=>g.id!==gid);
+  if(S.tab===gid)S.tab='mon';
+  R();
+}
+function renameGroup(gid,name){
+  const g=getGroup(gid);if(g){g.name=name;R()}
+}
+function toggleDayInGroup(gid,dayId,checked){
+  const g=getGroup(gid);if(!g)return;
+  if(checked){
+    // 他グループからは外す
+    S.groups.forEach(og=>{if(og.id!==gid)og.dayIds=og.dayIds.filter(d=>d!==dayId)});
+    // 既存メンバーがいれば先頭メンバーの設定をコピー
+    if(g.dayIds.length>0&&!g.dayIds.includes(dayId)){
+      const tmpl=g.dayIds[0];
+      S.scheduleByDay[dayId]=clone(S.scheduleByDay[tmpl]);
+      S.slotsByMode['1'][dayId]=clone(S.slotsByMode['1'][tmpl]);
+      S.slotsByMode['2'][dayId]=clone(S.slotsByMode['2'][tmpl]);
+    }
+    if(!g.dayIds.includes(dayId))g.dayIds.push(dayId);
+    g.dayIds.sort((a,b)=>DAYS.findIndex(d=>d.id===a)-DAYS.findIndex(d=>d.id===b));
+  } else {
+    g.dayIds=g.dayIds.filter(d=>d!==dayId);
+  }
+  R();
+}
+
+// 同期伝播
+function propagateSlots(dayId){
+  const g=groupOfDay(dayId);if(!g)return;
+  const src=JSON.stringify(S.slotsByMode[S.mode][dayId]);
+  g.dayIds.forEach(d=>{if(d!==dayId)S.slotsByMode[S.mode][d]=JSON.parse(src)});
+}
+function propagateSched(dayId){
+  const g=groupOfDay(dayId);if(!g)return;
+  const sSched=JSON.stringify(S.scheduleByDay[dayId]);
+  const s1=JSON.stringify(S.slotsByMode['1'][dayId]);
+  const s2=JSON.stringify(S.slotsByMode['2'][dayId]);
+  g.dayIds.forEach(d=>{
+    if(d!==dayId){
+      S.scheduleByDay[d]=JSON.parse(sSched);
+      S.slotsByMode['1'][d]=JSON.parse(s1);
+      S.slotsByMode['2'][d]=JSON.parse(s2);
+    }
+  });
+}
+
+function uSl(dayId,idx,li,ii,f,v){
+  const sl=S.slotsByMode[S.mode][dayId][idx];
+  sl.lines[li][ii][f==='n'?'n':'t']=f==='n'?Math.max(0,v):v;
+  sl.custom=true;propagateSlots(dayId);R();
+}
+function rSl(dayId,idx,li,ii){
+  S.slotsByMode[S.mode][dayId][idx].lines[li].splice(ii,1);
+  S.slotsByMode[S.mode][dayId][idx].custom=true;propagateSlots(dayId);R();
+}
+function aSl(dayId,idx,li){
+  S.slotsByMode[S.mode][dayId][idx].lines[li].push({t:'exam',n:1});
+  S.slotsByMode[S.mode][dayId][idx].custom=true;propagateSlots(dayId);R();
+}
+function rstSl(dayId,idx){
+  S.slotsByMode[S.mode][dayId][idx]=newSlotForMode(S.mode);
+  propagateSlots(dayId);R();
+}
+function rstAll(dayId){
+  const sch=S.scheduleByDay[dayId];
+  S.slotsByMode[S.mode][dayId]=initSlotsForSched(S.mode,sch);
+  propagateSlots(dayId);S.editing=null;R();
+}
+
+// スケジュール変更時のスロット数合わせ
+function resizeSlots(slots,mode,oldAn,oldPn,newAn,newPn){
+  const mk=()=>newSlotForMode(mode);
+  if(newAn>oldAn)slots.splice(oldAn,0,...Array.from({length:newAn-oldAn},mk));
+  else if(newAn<oldAn)slots.splice(newAn,oldAn-newAn);
+  if(newPn>oldPn)slots.push(...Array.from({length:newPn-oldPn},mk));
+  else if(newPn<oldPn)slots.splice(newAn+newPn,oldPn-newPn);
+}
+function updateSched(dayId,updates){
+  const sch=S.scheduleByDay[dayId];
+  const oldAn=sch.an,oldPn=sch.pn;
+  Object.assign(sch,updates);
+  sch.an=Math.max(0,Math.min(12,sch.an));
+  sch.pn=Math.max(0,Math.min(12,sch.pn));
+  const newAn=sch.an,newPn=sch.pn;
+  if(oldAn!==newAn||oldPn!==newPn){
+    ['1','2'].forEach(m=>resizeSlots(S.slotsByMode[m][dayId],m,oldAn,oldPn,newAn,newPn));
+  }
+  propagateSched(dayId);
+  if(S.editing&&S.editing.dayId===dayId&&S.editing.idx>=(newAn+newPn))S.editing=null;
+  R();
+}
+function togglePM(dayId,checked){
+  const sch=getSched(dayId);
+  if(checked)updateSched(dayId,{pn:sch.pn||5,ps:sch.ps||'15:00'});
+  else updateSched(dayId,{pn:0});
+}
+function rstSched(dayId){updateSched(dayId,clone(DEFAULT_SCHED[dayId]))}
+
+// ===== 描画パーツ =====
+function bar(items,ht=26){
+  let u=0;
+  const sg=items.map(i=>{const t=gt(i.t),m=t.m*i.n;u+=m;return{m,c:t.c,l:`${t.e}${i.n>1?'×'+i.n:''}`}});
+  const buf=30-u;
+  let o=`<div class="sb" style="height:${ht}px">`;
+  sg.forEach(s=>{o+=`<div class="ss" style="width:${(s.m/30)*100}%;background:${s.c}">${s.l}</div>`});
+  if(buf>0)o+=`<div class="ss" style="width:${(buf/30)*100}%;background:#d1fae5;color:#065f46;font-size:7px">🆕BF${buf}′</div>`;
+  o+='</div>';
+  if(buf<0)o+=`<div style="font-size:8px;color:#dc2626;font-weight:700">⚠${-buf}分超過</div>`;
+  return o;
+}
+function edLineHTML(dayId,idx,li){
+  const items=S.slotsByMode[S.mode][dayId][idx].lines[li];let h='';
+  items.forEach((it,i)=>{const t=gt(it.t);
+    h+=`<div class="se"><select onchange="uSl('${dayId}',${idx},${li},${i},'t',this.value)">${S.types.map(s=>`<option value="${s.k}"${s.k===it.t?' selected':''}>${s.e}${s.l}</option>`).join('')}</select><span style="font-size:8px;color:#94a3b8">×</span><input type="number" min="0" max="15" value="${it.n}" onchange="uSl('${dayId}',${idx},${li},${i},'n',+this.value)"><span style="font-size:8px;color:#94a3b8">${t.m*it.n}分</span><button class="rbtn" onclick="rSl('${dayId}',${idx},${li},${i})">✕</button></div>`});
+  h+=`<button class="abtn" onclick="aSl('${dayId}',${idx},${li})">+追加</button>`;return h;
+}
+
+// ===== 集計 =====
+function calcSum(){
+  const wk={};S.types.forEach(t=>wk[t.k]=0);
+  let tS=0,tU=0,tA=0;
+  const nLines=S.mode==='1'?1:2;
+  const dy={};
+  DAYS.forEach(d=>{
+    const slots=S.slotsByMode[S.mode][d.id];
+    const sch=S.scheduleByDay[d.id];
+    const n=sch.an+sch.pn;
+    const daySum={};S.types.forEach(t=>daySum[t.k]=0);
+    slots.forEach(sl=>{S.types.forEach(t=>daySum[t.k]+=slotAllType(sl,t.k))});
+    S.types.forEach(t=>wk[t.k]+=daySum[t.k]);
+    tS+=n;tA+=n*30*nLines;
+    slots.forEach(sl=>tU+=slotAllTime(sl));
+    dy[d.id]=daySum;
+  });
+  return {wk,tS,tU,tA,dy,mM1:wk.m1*4.3};
+}
+
+// ===== メイン描画 =====
+function R(){
+  // タブ有効性の担保
+  if(S.tab!=='summary'&&!getGroup(S.tab)&&!getD(S.tab))S.tab='mon';
+
+  const d=S.d,sm=calcSum(),ap=document.getElementById('app');
+  const m1Day=d.physUU/d.mDays;
+  const examDemand=d.examNoInj+d.examInj;
+  const ed=S.editing;
+  const oper=operDaysCount();
+
+  let h=`<div class="hd"><h1>診察オペレーション設計シミュレーター</h1>
+    <p>1診/2診 × 曜日グループ自由編成 × 診察時間カスタム</p></div>
+    <div class="tg-row">
+      <div class="tg"><span class="tg-l">体制</span>
+        <button class="tg-b${S.mode==='1'?' on':''}" onclick="sMode('1')">1診</button>
+        <button class="tg-b${S.mode==='2'?' on':''}" onclick="sMode('2')">2診</button>
+      </div>
+      <button class="tg-b accent" onclick="openGroupModal()">🔗 グループ編集 ${S.groups.length?`(${S.groups.length})`:''}</button>
+    </div>`;
+
+  // タブリスト生成
+  const groupedIds=new Set(S.groups.flatMap(g=>g.dayIds));
+  const ungroupedDays=DAYS.filter(d=>!groupedIds.has(d.id));
+  const tabList=[
+    ...S.groups.map(g=>({k:g.id,l:g.dayIds.length>0?`${g.name} (${g.dayIds.map(id=>getD(id).l).join('')})`:`${g.name} (空)`,grp:true})),
+    ...ungroupedDays.map(day=>({k:day.id,l:day.l})),
+    {k:'summary',l:'📊サマリー'},
+  ];
+  h+=`<div class="tabs">${tabList.map(t=>`<button class="tb${t.grp?' grp':''}${S.tab===t.k?' on':''}" onclick="sT('${t.k}')">${t.l}</button>`).join('')}</div>`;
+
+  // サイドバー
+  h+=`<div class="g"><div>
+    <div class="c" style="margin-bottom:6px">
+      <div class="ct" style="color:#b45309">⏱ 1件あたり時間</div>
+      ${S.types.map(t=>`<div class="sg"><div class="sl"><span>${t.e}${t.l}</span><span class="sv">${t.m}分</span></div><input type="range" min="0.5" max="15" step="0.5" value="${t.m}" oninput="sV('${t.k}',+this.value)"></div>`).join('')}
+    </div>
+    <div class="c">
+      <div class="ct" style="color:#4f46e5">📊 需要/日</div>
+      ${[
+        ['診察(注射なし)','examNoInj',10,100,1],['診察(注射あり)','examInj',10,80,1],
+        ['注射(処置室)','inject',10,120,1],['新患(初診)','newPt',3,25,1],
+        ['MRI結果','mri',0,10,1],['物療UU/月','physUU',100,1000,10],
+        ['営業日/月','mDays',10,28,1],['物療来院/日','physDaily',10,200,5],
+      ].map(([l,k,mn,mx,s])=>`<div class="sg"><div class="sl"><span>${l}</span><span class="sv">${d[k]}</span></div><input type="range" min="${mn}" max="${mx}" step="${s}" value="${d[k]}" oninput="sD('${k}',+this.value)"></div>`).join('')}
+      <div style="background:#eef2ff;border-radius:4px;padding:5px;margin-top:4px;font-size:9px;color:#475569">
+        <div style="font-weight:700;margin-bottom:2px">1日 需要</div>
+        🩺診察: <b>${examDemand}</b> | 💉注射: <b>${d.inject}</b> | 📋月1: <b>${Math.round(m1Day)}</b><br>
+        🆕新患: <b>${d.newPt}</b> | 🔬MRI: <b>${d.mri}</b>
+        <div style="margin-top:3px;padding-top:3px;border-top:1px solid #ddd6fe;font-size:8px;color:#6366f1">稼働日: <b>${oper}日/週</b></div>
+      </div>
+    </div>
+  </div><div>`;
+
+  if(S.tab==='summary'){
+    h+=renderSummary(sm,d,oper);
+  } else if(getGroup(S.tab)){
+    h+=renderScheduleGroup(S.tab,d,ed);
+  } else if(getD(S.tab)){
+    h+=renderScheduleDay(S.tab,d,ed);
+  }
+  h+='</div></div>';
+
+  if(ed)h+=renderModal(ed,d);
+  if(S.showGroupModal)h+=renderGroupModal();
+
+  ap.innerHTML=h;
+}
+
+// ---- 診察時間エディタ ----
+function renderSchedEditor(dayId){
+  const sch=getSched(dayId);
+  const bm=breakMin(sch);
+  const g=groupOfDay(dayId);
+  const scope=g?`${g.name} (${g.dayIds.map(id=>getD(id).l).join('')}) 全日に同期`:`${getD(dayId).l}曜のみ`;
+  return `<div class="sched">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:800;color:#0369a1">🕐 診察時間・休憩設定 <span style="color:#64748b;font-weight:600">(${scope})</span></div>
+      <button class="rstbtn" onclick="rstSched('${dayId}')">デフォルトに戻す</button>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;font-size:10px;flex-wrap:wrap">
+      <div><b style="color:#0369a1">AM</b>
+        <input type="time" value="${pad(sch.as)}" onchange="updateSched('${dayId}',{as:this.value})">
+        ×
+        <input type="number" min="0" max="12" value="${sch.an}" onchange="updateSched('${dayId}',{an:+this.value})">枠
+        ${sch.an>0?`<span style="color:#64748b;font-size:9px"> →${endTime(sch.as,sch.an)}</span>`:''}
+      </div>
+      <div><label style="cursor:pointer"><input type="checkbox" ${sch.pn>0?'checked':''} onchange="togglePM('${dayId}',this.checked)"> 午後あり</label></div>
+      ${sch.pn>0?`<div><b style="color:#0369a1">PM</b>
+        <input type="time" value="${pad(sch.ps||'15:00')}" onchange="updateSched('${dayId}',{ps:this.value})">
+        ×
+        <input type="number" min="0" max="12" value="${sch.pn}" onchange="updateSched('${dayId}',{pn:+this.value})">枠
+        <span style="color:#64748b;font-size:9px"> →${endTime(sch.ps||'15:00',sch.pn)}</span>
+      </div>`:''}
+    </div>
+    ${bm!==null?`<div style="font-size:9px;margin-top:4px;color:${bm<0?'#dc2626':'#64748b'}">
+      ${bm<0?`⚠ AM終了(${endTime(sch.as,sch.an)})とPM開始(${sch.ps})が重複 ${-bm}分`:`昼休憩: <b>${bm}分</b> (${endTime(sch.as,sch.an)}〜${sch.ps})`}
+    </div>`:(sch.pn===0&&sch.an>0)?`<div style="font-size:9px;margin-top:4px;color:#64748b">午後休診 (${sch.as}〜${endTime(sch.as,sch.an)})</div>`:(sch.an===0&&sch.pn>0)?`<div style="font-size:9px;margin-top:4px;color:#64748b">午前休診 (${sch.ps}〜${endTime(sch.ps,sch.pn)})</div>`:(sch.an===0&&sch.pn===0)?`<div style="font-size:9px;margin-top:4px;color:#dc2626">⚠ 終日休診</div>`:''}
+  </div>`;
+}
+
+// ---- グループタブの表示（代表日で編集） ----
+function renderScheduleGroup(gid,d,ed){
+  const g=getGroup(gid);
+  if(!g)return '';
+  if(g.dayIds.length===0){
+    return `<div class="c">
+      <div style="font-size:12px;font-weight:800;margin-bottom:6px">${g.name}</div>
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;text-align:center;font-size:10px;color:#78350f">
+        このグループには曜日が割り当てられていません。<br>
+        <button class="tg-b accent" style="margin-top:6px" onclick="openGroupModal()">🔗 グループ編集を開く</button>
+      </div>
+    </div>`;
+  }
+  const rep=repOfGroup(g);
+  const sch=getSched(rep);
+  let h=`<div class="c">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+      <div style="font-size:12px;font-weight:800">${g.name} (${g.dayIds.map(id=>getD(id).l).join('/')}) — ${S.mode}診体制</div>
+      <div><button class="rstbtn" onclick="rstAll('${rep}')">枠構成リセット</button></div>
+    </div>
+    <div style="font-size:9px;color:#64748b;margin-bottom:6px">${sch.an+sch.pn}枠/日 × ${g.dayIds.length}日分 ｜ 編集はグループ内全曜日に同期</div>`;
+  h+=renderSchedEditor(rep);
+  h+=renderSlotTable(rep,d,ed);
+  h+=renderDayCap(rep);
+  h+=renderRoundSim(rep,d);
+  h+='</div>';
+  return h;
+}
+
+// ---- 曜日タブの表示（その曜日のみ） ----
+function renderScheduleDay(dayId,d,ed){
+  const day=getD(dayId);
+  const sch=getSched(dayId);
+  let h=`<div class="c">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+      <div style="font-size:12px;font-weight:800">${day.l}曜 — ${S.mode}診体制</div>
+      <div><button class="rstbtn" onclick="rstAll('${dayId}')">枠構成リセット</button></div>
+    </div>
+    <div style="font-size:9px;color:#64748b;margin-bottom:6px">${sch.an+sch.pn}枠/日 ｜ この曜日のみ編集（グループに入れれば他曜日と同期）</div>`;
+  h+=renderSchedEditor(dayId);
+  h+=renderSlotTable(dayId,d,ed);
+  h+=renderDayCap(dayId);
+  h+=renderRoundSim(dayId,d);
+  h+='</div>';
+  return h;
+}
+
+// ---- スロット表 ----
+function renderSlotTable(dayId,d,ed){
+  const sch=getSched(dayId);
+  const slots=S.slotsByMode[S.mode][dayId];
+  const amT=sch.an>0?gT(sch.as,sch.an):[];
+  const pmT=sch.pn>0?gT(sch.ps||'15:00',sch.pn):[];
+  const rows=[];
+  amT.forEach((t,i)=>rows.push({t,i}));
+  if(pmT.length){
+    if(amT.length)rows.push({t:'break',i:-1});
+    pmT.forEach((t,i)=>rows.push({t,i:sch.an+i}));
+  }
+  if(rows.length===0){
+    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;text-align:center;color:#991b1b;font-size:10px;font-weight:700">終日休診 — 上の「診察時間」でAM/PMの枠数を増やしてください</div>`;
+  }
+  const cc=slots.filter(s=>s.custom).length;
+  const nLines=S.mode==='1'?1:2;
+  const headerCols=nLines===1
+    ? `<th style="width:75px;text-align:left">時間</th><th>枠構成</th><th style="width:30px">件</th><th style="width:14px"></th>`
+    : `<th style="width:75px;text-align:left">時間</th><th>A診</th><th>B診</th><th style="width:30px">計</th><th style="width:14px"></th>`;
+  let h='';
+  if(cc>0)h+=`<div style="font-size:9px;color:#f59e0b;font-weight:700;margin-bottom:4px">★ ${cc}枠カスタム済</div>`;
+  h+=`<table style="margin-bottom:8px"><thead><tr>${headerCols}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    if(r.t==='break'){h+=`<tr><td colspan="${nLines===1?4:5}" style="text-align:center;font-size:8px;color:#94a3b8;background:#f8fafc;padding:2px">— 昼休憩 —</td></tr>`;return}
+    const sl=slots[r.i],isSel=ed&&ed.dayId===dayId&&ed.idx===r.i;
+    const cnt=slotAllCount(sl);
+    h+=`<tr class="slot-row${isSel?' sel':''}" onclick="openEdit('${dayId}',${r.i})">
+      <td style="text-align:left;font-size:9px;font-weight:600;color:#475569;padding-left:4px">${r.t}${sl.custom?'<span style="color:#f59e0b;font-size:7px"> ★</span>':''}</td>
+      ${sl.lines.map(line=>`<td style="padding:1px">${bar(line,22)}</td>`).join('')}
+      <td style="font-weight:700;font-size:10px">${cnt}</td>
+      <td style="font-size:8px;color:#94a3b8">✎</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  return h;
+}
+
+// ---- 1日キャパ ----
+function renderDayCap(dayId){
+  const slots=S.slotsByMode[S.mode][dayId];
+  const sch=getSched(dayId);
+  const cap={};S.types.forEach(t=>cap[t.k]=0);
+  slots.forEach(sl=>{S.types.forEach(t=>cap[t.k]+=slotAllType(sl,t.k))});
+  return `<div style="background:#f8fafc;border-radius:6px;padding:8px;margin-bottom:6px">
+    <div style="font-size:10px;font-weight:700;color:#334155;margin-bottom:4px">1日キャパ（${sch.an+sch.pn}枠・${S.mode}診）</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
+      ${S.types.map(t=>`<div style="text-align:center;padding:4px;border-radius:4px;background:${t.c}08;border:1px solid ${t.c}25"><div style="font-size:7px;color:${t.c}">${t.e}${t.l}</div><div style="font-size:14px;font-weight:900;color:${t.c}">${cap[t.k]}</div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- 回診シミュレーション ----
+function renderRoundSim(dayId,d){
+  const slots=S.slotsByMode[S.mode][dayId];
+  let roundTotal=0;
+  slots.forEach(sl=>roundTotal+=slotAllType(sl,'round'));
+  if(roundTotal===0){
+    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;margin-top:4px">
+      <div style="font-size:10px;font-weight:700;color:#991b1b">⚠️ 回診枠なし — 物療${d.physDaily}名/日の巡回が未対応</div>
+      <div style="font-size:9px;color:#991b1b;margin-top:2px">枠をクリックして回診🚶を追加してください</div>
+    </div>`;
+  }
+  const perRound=d.physDaily/roundTotal;
+  const secPP=(gt('round').m*60)/perRound;
+  return `<div class="rnd">
+    <div style="font-size:10px;font-weight:800;color:#92400e;margin-bottom:4px">🚶 回診シミュレーション</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px">
+      <div style="text-align:center"><div style="font-size:8px;color:#92400e">物療来院</div><div style="font-size:16px;font-weight:900;color:#d97706">${d.physDaily}</div><div style="font-size:8px">名/日</div></div>
+      <div style="text-align:center"><div style="font-size:8px;color:#92400e">回診回数</div><div style="font-size:16px;font-weight:900;color:#d97706">${roundTotal}</div><div style="font-size:8px">回/日</div></div>
+      <div style="text-align:center"><div style="font-size:8px;color:#92400e">1回あたり</div><div style="font-size:16px;font-weight:900;color:${perRound>12?'#dc2626':perRound>8?'#d97706':'#16a34a'}">${perRound.toFixed(1)}</div><div style="font-size:8px">名</div></div>
+      <div style="text-align:center"><div style="font-size:8px;color:#92400e">1名あたり</div><div style="font-size:16px;font-weight:900;color:${secPP<30?'#dc2626':secPP<50?'#d97706':'#16a34a'}">${secPP.toFixed(0)}</div><div style="font-size:8px">秒</div></div>
+    </div>
+  </div>`;
+}
+
+// ---- サマリー ----
+function renderSummary(sm,d,oper){
+  const examDemand=d.examNoInj+d.examInj;
+  const examMoS=Math.round(sm.wk.exam*4.3),examMoD=examDemand*d.mDays;
+  const sup=[
+    {l:'診察🩺',s:examMoS,d:examMoD},{l:'月1📋',s:Math.round(sm.mM1),d:d.physUU},
+    {l:'注射💉',s:Math.round(sm.wk.inject*4.3),d:d.inject*d.mDays},
+    {l:'新患🆕',s:Math.round(sm.wk.newpt*4.3),d:d.newPt*d.mDays},
+    {l:'MRI🔬',s:Math.round(sm.wk.mri*4.3),d:d.mri*d.mDays},
+  ];
+  const uP=sm.tA>0?sm.tU/sm.tA*100:0;
+  const wkRound=sm.wk.round;
+  const perRndAvg=wkRound>0?(d.physDaily*oper)/wkRound:0;
+
+  let h=`<div class="c">
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px">週間・月間 サマリー（${S.mode}診体制 / 稼働${oper}日）</div>
+    <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:4px">曜日別 内訳</div>
+    <table style="margin-bottom:12px"><thead><tr><th style="text-align:left">曜</th><th>グループ</th><th>枠</th><th>時間</th>
+      ${S.types.map(t=>`<th>${t.e}</th>`).join('')}</tr></thead><tbody>
+      ${DAYS.map(day=>{
+        const sch=S.scheduleByDay[day.id];
+        const hrs=sch.pn>0?`${sch.as}-${endTime(sch.as,sch.an)}/${sch.ps}-${endTime(sch.ps,sch.pn)}`:(sch.an>0?`${sch.as}-${endTime(sch.as,sch.an)}`:'休診');
+        const g=groupOfDay(day.id);
+        return `<tr><td style="font-weight:700;text-align:left">${day.l}</td><td style="font-size:8px;color:#64748b">${g?g.name:'-'}</td><td>${sch.an+sch.pn}</td><td style="font-size:8px;color:#64748b">${hrs}</td>
+          ${S.types.map(t=>`<td style="font-weight:700;color:${t.c}">${sm.dy[day.id][t.k]}</td>`).join('')}
+        </tr>`;
+      }).join('')}
+      <tr style="background:#f1f5f9;font-weight:800"><td style="text-align:left">週合計</td><td></td><td>${sm.tS}</td><td></td>
+        ${S.types.map(t=>`<td style="color:${t.c}">${sm.wk[t.k]}</td>`).join('')}</tr>
+    </tbody></table>
+    <div style="font-size:11px;font-weight:700;color:#334155;margin-bottom:6px">月間 需要vs供給</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px">
+      ${sup.map(it=>{const ok=it.s>=it.d;return`<div class="sc ${ok?'sok':'sng'}">
+        <div style="font-size:10px;font-weight:700;color:${ok?'#166534':'#991b1b'};margin-bottom:3px">${ok?'✅':'⚠️'} ${it.l}</div>
+        <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:#64748b">供給</span><span style="font-weight:800">${it.s}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:#64748b">需要</span><span style="font-weight:800">${it.d}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;border-top:1px solid #e2e8f0;padding-top:2px;margin-top:2px">
+          <span style="color:#64748b">差分</span><span style="font-weight:900;color:${ok?'#16a34a':'#dc2626'}">${it.s-it.d>=0?'+':''}${it.s-it.d}</span>
+        </div></div>`}).join('')}
+    </div>
+    ${wkRound>0?`<div class="rnd" style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:800;color:#92400e;margin-bottom:4px">🚶 回診 週間</div>
+      <div style="font-size:10px;color:#78350f">回診: <b>${wkRound}</b>回/週 | 物療のべ: <b>${d.physDaily*oper}</b>名/週 | 1回平均: <b>${perRndAvg.toFixed(1)}</b>名</div>
+    </div>`:`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:#991b1b">⚠️ 回診が週間で0回 — 物療患者の巡回が未対応</div>
+    </div>`}
+    <div style="background:#f8fafc;border-radius:6px;padding:8px">
+      <div style="font-size:10px;font-weight:700;color:#334155;margin-bottom:4px">${S.mode}診体制 週間稼働率</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:16px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+          <div style="height:100%;border-radius:4px;width:${Math.min(100,uP)}%;background:${uP>115?'#fca5a5':uP>100?'#fde68a':'#86efac'};transition:width .3s"></div>
+        </div>
+        <span style="font-size:14px;font-weight:900;color:${uP>115?'#dc2626':uP>100?'#d97706':'#16a34a'}">${uP.toFixed(0)}%</span>
+      </div>
+      <div style="font-size:8px;color:#94a3b8;margin-top:1px">${sm.tU}分 / ${sm.tA}分（${S.mode}診 = 30分×枠数×${S.mode==='1'?1:2}列）</div>
+    </div>
+  </div>`;
+  return h;
+}
+
+// ---- スロット編集モーダル ----
+function renderModal(ed,d){
+  const day=getD(ed.dayId);
+  const sch=getSched(ed.dayId);
+  const sl=S.slotsByMode[S.mode][ed.dayId][ed.idx];
+  const amT=sch.an>0?gT(sch.as,sch.an):[];
+  const pmT=sch.pn>0?gT(sch.ps||'15:00',sch.pn):[];
+  const allTm=[...amT,...pmT];
+  const tLbl=allTm[ed.idx]||'';
+  const g=groupOfDay(ed.dayId);
+  const scope=g?`${g.name} (${g.dayIds.map(id=>getD(id).l).join('/')}) 全日に同期`:`${day.l}曜のみ`;
+  const roundInSlot=slotAllType(sl,'round');
+  const ptsPerRound=roundInSlot>0?d.physDaily/(sch.an+sch.pn)/roundInSlot:0;
+
+  let linesHtml='';
+  if(sl.lines.length===1){
+    const t=stm(sl.lines[0]),buf=30-t;
+    linesHtml=`<div class="ep ep1" style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:800;color:#4f46e5;margin-bottom:4px">
+        使用${t}/30分${t>30?' <span style="color:#dc2626">⚠超過</span>':buf>0?` → <span style="color:#10b981">🆕BF${buf}分</span>`:''}
+      </div>
+      ${edLineHTML(ed.dayId,ed.idx,0)}
+      <div style="margin-top:6px">${bar(sl.lines[0],32)}</div>
+    </div>`;
+  } else {
+    const aT=stm(sl.lines[0]),bT=stm(sl.lines[1]);
+    linesHtml=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="ep epa">
+        <div style="font-size:11px;font-weight:800;color:#1e40af;margin-bottom:4px">A診 (${aT}/30分)${aT>30?' <span style="color:#dc2626">⚠超過</span>':aT<30?` <span style="color:#10b981">→🆕BF${30-aT}分</span>`:''}</div>
+        ${edLineHTML(ed.dayId,ed.idx,0)}
+        <div style="margin-top:6px">${bar(sl.lines[0])}</div>
+      </div>
+      <div class="ep epb">
+        <div style="font-size:11px;font-weight:800;color:#166534;margin-bottom:4px">B診 (${bT}/30分)${bT>30?' <span style="color:#dc2626">⚠超過</span>':bT<30?` <span style="color:#10b981">→🆕BF${30-bT}分</span>`:''}</div>
+        ${edLineHTML(ed.dayId,ed.idx,1)}
+        <div style="margin-top:6px">${bar(sl.lines[1])}</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="modal-bg" onclick="if(event.target===this)closeEdit()">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div><div style="font-size:14px;font-weight:900">${day.l}曜 ${tLbl}（${S.mode}診）</div>
+          <div style="font-size:9px;color:#64748b">編集対象: ${scope}${sl.custom?' <span style="color:#f59e0b">★カスタム済</span>':''}</div></div>
+        <div><button class="rstbtn" onclick="rstSl('${ed.dayId}',${ed.idx})">デフォルトに戻す</button>
+          <button onclick="closeEdit()" style="font:800 16px/1 sans-serif;background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px 8px">✕</button></div>
+      </div>
+      ${linesHtml}
+      ${roundInSlot>0?`<div class="rnd">
+        <div style="font-size:9px;color:#92400e">🚶 この枠の回診: 物療${(d.physDaily/(sch.an+sch.pn)).toFixed(1)}名/枠 ÷ 回診${roundInSlot}回 = <b>1回あたり${ptsPerRound.toFixed(1)}名</b>チェック (${(gt('round').m*60/ptsPerRound).toFixed(0)}秒/名)</div>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+// ---- グループ編集モーダル ----
+function renderGroupModal(){
+  return `<div class="modal-bg" onclick="if(event.target===this)closeGroupModal()">
+    <div class="modal" style="width:580px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:900">🔗 グループ編集</div>
+          <div style="font-size:9px;color:#64748b">グループ内の曜日は診察時間・枠構成が同期されます</div>
+        </div>
+        <button onclick="closeGroupModal()" style="font:800 16px/1 sans-serif;background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px 8px">✕</button>
+      </div>
+      <button onclick="addGroup()" style="font:800 10px/1 'Noto Sans JP',sans-serif;color:#fff;background:#6366f1;border:none;border-radius:4px;padding:7px 12px;cursor:pointer;margin-bottom:10px">+ 新しいグループを追加</button>
+      ${S.groups.length===0?`<div style="background:#f8fafc;border-radius:6px;padding:12px;font-size:10px;color:#64748b;text-align:center">
+        グループがありません。各曜日は独立して編集されています。<br>同じ設定を複数曜日に適用したい場合は、上のボタンからグループを作成してください。
+      </div>`:''}
+      ${S.groups.map(g=>`
+        <div style="background:#f8fafc;border-radius:6px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <input type="text" value="${g.name}" onchange="renameGroup('${g.id}',this.value)" style="flex:1;font:700 11px/1 'Noto Sans JP',sans-serif;padding:5px 7px;border:1px solid #cbd5e1;border-radius:4px">
+            <button onclick="deleteGroup('${g.id}')" style="font:700 9px/1 'Noto Sans JP',sans-serif;color:#dc2626;background:#fff;border:1px solid #fca5a5;border-radius:4px;padding:5px 10px;cursor:pointer">削除</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${DAYS.map(day=>{
+              const inThis=g.dayIds.includes(day.id);
+              const inOther=S.groups.find(og=>og.id!==g.id&&og.dayIds.includes(day.id));
+              return `<label class="dchk${inThis?' on':''}">
+                <input type="checkbox" ${inThis?'checked':''} onchange="toggleDayInGroup('${g.id}','${day.id}',this.checked)">
+                ${day.l}${inOther?`<span style="font-size:7px;color:#dc2626">(${inOther.name})</span>`:''}
+              </label>`;
+            }).join('')}
+          </div>
+          ${g.dayIds.length>1?`<div style="font-size:8px;color:#64748b;margin-top:5px">💡 ${getD(g.dayIds[0]).l}曜の設定が他の曜日に同期されます</div>`:g.dayIds.length===1?`<div style="font-size:8px;color:#64748b;margin-top:5px">💡 1曜日だけだと同期は発生しません。2曜日以上追加してください</div>`:''}
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+R();
+</script>
+</body>
+</html>
