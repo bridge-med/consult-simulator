@@ -3,58 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>診察オペレーション設計シミュレーター</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;800;900&display=swap" rel="stylesheet">
+<title>ConsultSim — 診察オペレーション設計シミュレーター | BRIDGE</title>
+<meta name="description" content="1診/2診×曜日カスタム×グループ同期で、院長の「こう回したい」を数字で見える化。BRIDGEのプロダクト06。">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,700;1,9..144,900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
 <style>
+/* ===== BRIDGE Design System v1.0 — Quiet Atelier / 職人の手記 ===== */
+:root{
+  --kami:#FAFAF7; --kami-2:#F4F1E8; --kami-3:#EDE8DD;
+  --sumi:#0A0A0F; --sumi-2:#2A2A35; --sumi-3:#6E6E78; --sumi-4:#B8B5A8;
+  --shu:#C8553D; --shu-deep:#A8442F; --shu-pale:#F4D5CB;
+  --ai:#1B4965; --ai-deep:#0F2D44; --ai-pale:#C5D4E0;
+  --moegi:#8A9A5B; --moegi-deep:#6B7A4F; --moegi-pale:#C8D4B0;
+  --taisha:#8B5A2B; --taisha-deep:#6B4420; --taisha-pale:#D4B896;
+  --serif-jp:'Noto Serif JP',serif;
+  --sans-jp:'Noto Sans JP',sans-serif;
+  --serif-en:'Fraunces','Noto Serif JP',serif;
+  --sans-en:'Inter','Noto Sans JP',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans JP',sans-serif;background:#f0f2f5;color:#0f172a;line-height:1.5}
-.wrap{max-width:1100px;margin:0 auto;padding:10px}
-.hd{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:10px;padding:14px 20px;color:#fff;margin-bottom:10px}
-.hd h1{font-size:15px;font-weight:900}.hd p{font-size:10px;color:#94a3b8;margin-top:2px}
-.tg-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-.tg{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px}
-.tg-l{font-size:9px;font-weight:700;color:#64748b;margin-right:4px}
-.tg-b{padding:4px 10px;border-radius:4px;border:none;cursor:pointer;font:800 10px/1 'Noto Sans JP',sans-serif;background:#f1f5f9;color:#475569;transition:.15s}
-.tg-b.on{background:#1a1a2e;color:#fff}
-.tg-b.accent{background:#6366f1;color:#fff}
-.tabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
-.tb{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font:800 11px/1 'Noto Sans JP',sans-serif;background:#e2e8f0;color:#475569;transition:.15s}
-.tb.on{background:#1a1a2e;color:#fff}
-.tb.grp{background:#eef2ff;color:#4338ca}
-.tb.grp.on{background:#4338ca;color:#fff}
-.g{display:grid;grid-template-columns:224px 1fr;gap:8px}
-.c{background:#fff;border-radius:8px;padding:10px;border:1px solid #e2e8f0}
-.ct{font-size:10px;font-weight:800;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #e2e8f0}
-.sg{margin-bottom:6px}.sl{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:1px}
-.sv{font-size:12px;font-weight:900;color:#0f172a}
-input[type=range]{width:100%;height:4px;cursor:pointer;accent-color:#6366f1}
-.sb{display:flex;height:26px;border-radius:4px;overflow:hidden;border:1px solid #cbd5e1}
+body{font-family:var(--sans-jp);background:var(--kami);color:var(--sumi);line-height:1.6;font-feature-settings:"palt" 1;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:200;opacity:0.025;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");mix-blend-mode:multiply}
+::selection{background:var(--shu);color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+.hd{background:var(--sumi);border-radius:2px;padding:18px 24px;color:#fff;margin-bottom:14px;border-left:3px solid var(--shu)}
+.hd h1{font:900 18px/1.2 var(--serif-jp);letter-spacing:-0.01em}
+.hd h1::before{content:'BRIDGE · Product 06';display:block;font:800 9px/1 var(--sans-en);color:var(--shu);letter-spacing:0.3em;text-transform:uppercase;margin-bottom:8px;font-style:normal}
+.hd p{font:500 11px/1.5 var(--sans-jp);color:rgba(255,255,255,0.65);margin-top:6px}
+.tg-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.tg{display:inline-flex;align-items:center;gap:4px;background:var(--kami);border:1px solid rgba(10,10,15,0.08);border-radius:2px;padding:4px 6px}
+.tg-l{font:700 9px/1 var(--sans-en);color:var(--sumi-3);letter-spacing:0.18em;text-transform:uppercase;margin-right:4px}
+.tg-b{padding:5px 10px;border-radius:2px;border:none;cursor:pointer;font:700 10px/1 var(--sans-jp);background:var(--kami-2);color:var(--sumi-2);transition:.15s}
+.tg-b.on{background:var(--sumi);color:var(--kami)}
+.tg-b.accent{background:var(--shu);color:#fff}
+.tabs{display:inline-flex;gap:0;margin-bottom:10px;flex-wrap:wrap;border:1px solid var(--sumi);border-radius:2px;overflow:hidden}
+.tb{padding:7px 14px;border:none;cursor:pointer;font:700 11px/1 var(--sans-jp);background:var(--kami);color:var(--sumi-2);transition:.15s}
+.tb:not(:last-child){border-right:1px solid rgba(10,10,15,0.08)}
+.tb.on{background:var(--sumi);color:var(--kami)}
+.tb.grp{background:var(--ai-pale);color:var(--ai-deep)}
+.tb.grp.on{background:var(--ai);color:#fff}
+.g{display:grid;grid-template-columns:240px 1fr;gap:10px}
+.c{background:#fff;border-radius:2px;padding:12px;border:1px solid rgba(10,10,15,0.08)}
+.ct{font:700 10px/1 var(--sans-en);color:var(--sumi-3);letter-spacing:0.22em;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(10,10,15,0.08)}
+.sg{margin-bottom:8px}
+.sl{display:flex;justify-content:space-between;font:500 10px/1.4 var(--sans-jp);color:var(--sumi-3);margin-bottom:2px}
+.sv{font:900 italic 13px/1 var(--serif-en);color:var(--sumi);letter-spacing:-0.01em}
+input[type=range]{width:100%;height:4px;cursor:pointer;accent-color:var(--shu)}
+.sb{display:flex;height:26px;border-radius:2px;overflow:hidden;border:1px solid #cbd5e1}
 .ss{display:flex;align-items:center;justify-content:center;font-size:7.5px;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden}
 .se{margin-bottom:2px;display:flex;align-items:center;gap:3px}
-.se select{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #d1d5db;border-radius:3px;width:72px}
-.se input[type=number]{width:30px;font:700 11px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #d1d5db;border-radius:3px;padding:1px}
-.abtn{font:9px/1 'Noto Sans JP',sans-serif;color:#6366f1;background:none;border:1px dashed #a5b4fc;border-radius:3px;padding:1px 6px;cursor:pointer;margin-top:2px}
+.se select{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #d1d5db;border-radius:2px;width:72px}
+.se input[type=number]{width:30px;font:700 11px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #d1d5db;border-radius:2px;padding:1px}
+.abtn{font:9px/1 'Noto Sans JP',sans-serif;color:var(--shu);background:none;border:1px dashed #a5b4fc;border-radius:2px;padding:1px 6px;cursor:pointer;margin-top:2px}
 .rbtn{font-size:9px;color:#bbb;background:none;border:none;cursor:pointer;padding:1px}
 .slot-row{cursor:pointer;transition:background .1s}
 .slot-row:hover{background:#f8fafc}
-.slot-row.sel{background:#eef2ff;outline:2px solid #6366f1;outline-offset:-1px}
-.ep{border-radius:6px;padding:8px}.epa{background:#eff6ff}.epb{background:#f0fdf4}.ep1{background:#eef2ff}
-.sc{border-radius:6px;padding:8px;border:1px solid}
+.slot-row.sel{background:#eef2ff;outline:2px solid var(--shu);outline-offset:-1px}
+.ep{border-radius:2px;padding:8px}.epa{background:#eff6ff}.epb{background:#f0fdf4}.ep1{background:#eef2ff}
+.sc{border-radius:2px;padding:8px;border:1px solid}
 .sok{background:#f0fdf4;border-color:#bbf7d0}.sng{background:#fef2f2;border-color:#fecaca}
 table{width:100%;border-collapse:collapse;font-size:10px}
 th{padding:3px;text-align:center;border-bottom:2px solid #e2e8f0;font-weight:700;color:#64748b;background:#f8fafc;font-size:9px}
 td{padding:2px;border-bottom:1px solid #f1f5f9}
 .modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:100;display:flex;align-items:center;justify-content:center}
-.modal{background:#fff;border-radius:10px;padding:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.15)}
-.rstbtn{font:600 9px/1 'Noto Sans JP',sans-serif;color:#64748b;background:#f1f5f9;border:1px solid #d1d5db;border-radius:3px;padding:2px 8px;cursor:pointer;margin-left:4px}
-.rnd{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px;margin-top:6px}
-.sched{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px;margin-bottom:8px}
-.sched input[type=time]{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #bae6fd;border-radius:3px}
-.sched input[type=number]{width:38px;font:700 10px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #bae6fd;border-radius:3px;padding:1px}
-.times{background:#fffbf5;border:1px solid #fed7aa;border-radius:6px;padding:8px;margin-bottom:8px}
-.dchk{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600;transition:.1s;border:1px solid #e2e8f0;background:#fff;color:#475569}
+.modal{background:#fff;border-radius:2px;padding:16px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.rstbtn{font:600 9px/1 'Noto Sans JP',sans-serif;color:#64748b;background:#f1f5f9;border:1px solid #d1d5db;border-radius:2px;padding:2px 8px;cursor:pointer;margin-left:4px}
+.rnd{background:#fffbeb;border:1px solid #fde68a;border-radius:2px;padding:8px;margin-top:6px}
+.sched{background:#f0f9ff;border:1px solid #bae6fd;border-radius:2px;padding:8px;margin-bottom:8px}
+.sched input[type=time]{font:10px/1 'Noto Sans JP',sans-serif;padding:1px 2px;border:1px solid #bae6fd;border-radius:2px}
+.sched input[type=number]{width:38px;font:700 10px/1 'Noto Sans JP',sans-serif;text-align:center;border:1px solid #bae6fd;border-radius:2px;padding:1px}
+.times{background:#fffbf5;border:1px solid #fed7aa;border-radius:2px;padding:8px;margin-bottom:8px}
+.dchk{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:2px;cursor:pointer;font-size:10px;font-weight:600;transition:.1s;border:1px solid #e2e8f0;background:#fff;color:#475569}
 .dchk input{margin:0}
-.dchk.on{background:#eef2ff;border-color:#6366f1;color:#4338ca}
+.dchk.on{background:#eef2ff;border-color:var(--shu);color:var(--shu-deep)}
 </style>
 </head>
 <body>
@@ -63,12 +88,12 @@ td{padding:2px;border-bottom:1px solid #f1f5f9}
 // ===== 定数 =====
 // 種別定義（表示用）。時間は曜日×モードで独立保持
 const TY=[
-  {k:'exam',l:'診察',c:'#4f46e5',e:'🩺'},
-  {k:'m1',l:'月1',c:'#7c3aed',e:'📋'},
-  {k:'round',l:'回診',c:'#d97706',e:'🚶'},
-  {k:'mri',l:'MRI結果',c:'#0891b2',e:'🔬'},
-  {k:'inject',l:'注射',c:'#dc2626',e:'💉'},
-  {k:'newpt',l:'新患BF',c:'#10b981',e:'🆕'},
+  {k:'exam',l:'診察',c:'#C8553D',e:''},
+  {k:'m1',l:'月1',c:'#1B4965',e:''},
+  {k:'round',l:'回診',c:'#8B5A2B',e:''},
+  {k:'mri',l:'MRI結果',c:'#8A9A5B',e:''},
+  {k:'inject',l:'注射',c:'#A8442F',e:''},
+  {k:'newpt',l:'新患BF',c:'#6B7A4F',e:''},
 ];
 // モード別の既定時間（分）。曜日初期値として使う
 const DEFAULT_MIN_1={exam:4,m1:2,round:7,mri:5,inject:1,newpt:5};
@@ -355,11 +380,11 @@ function R(){
         ['MRI結果','mri',0,10,1],['物療UU/月','physUU',100,1000,10],
         ['営業日/月','mDays',10,28,1],['物療来院/日','physDaily',10,200,5],
       ].map(([l,k,mn,mx,s])=>`<div class="sg"><div class="sl"><span>${l}</span><span class="sv">${d[k]}</span></div><input type="range" min="${mn}" max="${mx}" step="${s}" value="${d[k]}" oninput="sD('${k}',+this.value)"></div>`).join('')}
-      <div style="background:#eef2ff;border-radius:4px;padding:5px;margin-top:4px;font-size:9px;color:#475569">
+      <div style="background:#eef2ff;border-radius:2px;padding:5px;margin-top:4px;font-size:9px;color:#475569">
         <div style="font-weight:700;margin-bottom:2px">1日 需要</div>
         🩺診察: <b>${examDemand}</b> | 💉注射: <b>${d.inject}</b> | 📋月1: <b>${Math.round(m1Day)}</b><br>
         🆕新患: <b>${d.newPt}</b> | 🔬MRI: <b>${d.mri}</b>
-        <div style="margin-top:3px;padding-top:3px;border-top:1px solid #ddd6fe;font-size:8px;color:#6366f1">稼働日: <b>${oper}日/週</b></div>
+        <div style="margin-top:3px;padding-top:3px;border-top:1px solid #ddd6fe;font-size:8px;color:var(--shu)">稼働日: <b>${oper}日/週</b></div>
       </div>
     </div>
     <div class="c" style="margin-top:6px;font-size:9px;color:#64748b;line-height:1.5">
@@ -439,7 +464,7 @@ function renderScheduleGroup(gid,d,ed){
   if(g.dayIds.length===0){
     return `<div class="c">
       <div style="font-size:12px;font-weight:800;margin-bottom:6px">${g.name}</div>
-      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;text-align:center;font-size:10px;color:#78350f">
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:2px;padding:12px;text-align:center;font-size:10px;color:#78350f">
         このグループには曜日が割り当てられていません。<br>
         <button class="tg-b accent" style="margin-top:6px" onclick="openGroupModal()">🔗 グループ編集を開く</button>
       </div>
@@ -494,7 +519,7 @@ function renderSlotTable(dayId,d,ed){
     pmT.forEach((t,i)=>rows.push({t,i:sch.an+i}));
   }
   if(rows.length===0){
-    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;text-align:center;color:#991b1b;font-size:10px;font-weight:700">終日休診 — 上の「診察時間」でAM/PMの枠数を増やしてください</div>`;
+    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:2px;padding:8px;text-align:center;color:#991b1b;font-size:10px;font-weight:700">終日休診 — 上の「診察時間」でAM/PMの枠数を増やしてください</div>`;
   }
   const cc=slots.filter(s=>s.custom).length;
   const nLines=S.mode==='1'?1:2;
@@ -525,10 +550,10 @@ function renderDayCap(dayId){
   const sch=getSched(dayId);
   const cap={};TY.forEach(t=>cap[t.k]=0);
   slots.forEach(sl=>{TY.forEach(t=>cap[t.k]+=slotAllType(sl,t.k))});
-  return `<div style="background:#f8fafc;border-radius:6px;padding:8px;margin-bottom:6px">
+  return `<div style="background:#f8fafc;border-radius:2px;padding:8px;margin-bottom:6px">
     <div style="font-size:10px;font-weight:700;color:#334155;margin-bottom:4px">1日キャパ（${sch.an+sch.pn}枠・${S.mode}診）</div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
-      ${TY.map(t=>`<div style="text-align:center;padding:4px;border-radius:4px;background:${t.c}08;border:1px solid ${t.c}25"><div style="font-size:7px;color:${t.c}">${t.e}${t.l}</div><div style="font-size:14px;font-weight:900;color:${t.c}">${cap[t.k]}</div></div>`).join('')}
+      ${TY.map(t=>`<div style="text-align:center;padding:4px;border-radius:2px;background:${t.c}08;border:1px solid ${t.c}25"><div style="font-size:7px;color:${t.c}">${t.e}${t.l}</div><div style="font-size:14px;font-weight:900;color:${t.c}">${cap[t.k]}</div></div>`).join('')}
     </div>
   </div>`;
 }
@@ -539,7 +564,7 @@ function renderRoundSim(dayId,d){
   let roundTotal=0;
   slots.forEach(sl=>roundTotal+=slotAllType(sl,'round'));
   if(roundTotal===0){
-    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;margin-top:4px">
+    return `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:2px;padding:8px;margin-top:4px">
       <div style="font-size:10px;font-weight:700;color:#991b1b">⚠️ 回診枠なし — 物療${d.physDaily}名/日の巡回が未対応</div>
       <div style="font-size:9px;color:#991b1b;margin-top:2px">枠をクリックして回診🚶を追加してください</div>
     </div>`;
@@ -601,14 +626,14 @@ function renderSummary(sm,d,oper){
     ${wkRound>0?`<div class="rnd" style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:800;color:#92400e;margin-bottom:4px">🚶 回診 週間</div>
       <div style="font-size:10px;color:#78350f">回診: <b>${wkRound}</b>回/週 | 物療のべ: <b>${d.physDaily*oper}</b>名/週 | 1回平均: <b>${perRndAvg.toFixed(1)}</b>名</div>
-    </div>`:`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px;margin-bottom:10px">
+    </div>`:`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:2px;padding:8px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;color:#991b1b">⚠️ 回診が週間で0回 — 物療患者の巡回が未対応</div>
     </div>`}
-    <div style="background:#f8fafc;border-radius:6px;padding:8px">
+    <div style="background:#f8fafc;border-radius:2px;padding:8px">
       <div style="font-size:10px;font-weight:700;color:#334155;margin-bottom:4px">${S.mode}診体制 週間稼働率</div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1;height:16px;background:#e2e8f0;border-radius:4px;overflow:hidden">
-          <div style="height:100%;border-radius:4px;width:${Math.min(100,uP)}%;background:${uP>115?'#fca5a5':uP>100?'#fde68a':'#86efac'};transition:width .3s"></div>
+        <div style="flex:1;height:16px;background:#e2e8f0;border-radius:2px;overflow:hidden">
+          <div style="height:100%;border-radius:2px;width:${Math.min(100,uP)}%;background:${uP>115?'#fca5a5':uP>100?'#fde68a':'#86efac'};transition:width .3s"></div>
         </div>
         <span style="font-size:14px;font-weight:900;color:${uP>115?'#dc2626':uP>100?'#d97706':'#16a34a'}">${uP.toFixed(0)}%</span>
       </div>
@@ -684,15 +709,15 @@ function renderGroupModal(){
         </div>
         <button onclick="closeGroupModal()" style="font:800 16px/1 sans-serif;background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px 8px">✕</button>
       </div>
-      <button onclick="addGroup()" style="font:800 10px/1 'Noto Sans JP',sans-serif;color:#fff;background:#6366f1;border:none;border-radius:4px;padding:7px 12px;cursor:pointer;margin-bottom:10px">+ 新しいグループを追加</button>
-      ${S.groups.length===0?`<div style="background:#f8fafc;border-radius:6px;padding:12px;font-size:10px;color:#64748b;text-align:center">
+      <button onclick="addGroup()" style="font:800 10px/1 'Noto Sans JP',sans-serif;color:#fff;background:var(--shu);border:none;border-radius:2px;padding:7px 12px;cursor:pointer;margin-bottom:10px">+ 新しいグループを追加</button>
+      ${S.groups.length===0?`<div style="background:#f8fafc;border-radius:2px;padding:12px;font-size:10px;color:#64748b;text-align:center">
         グループがありません。各曜日は独立して編集されています。<br>同じ設定を複数曜日に適用したい場合は、上のボタンからグループを作成してください。
       </div>`:''}
       ${S.groups.map(g=>`
-        <div style="background:#f8fafc;border-radius:6px;padding:10px;margin-bottom:8px">
+        <div style="background:#f8fafc;border-radius:2px;padding:10px;margin-bottom:8px">
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-            <input type="text" value="${g.name}" onchange="renameGroup('${g.id}',this.value)" style="flex:1;font:700 11px/1 'Noto Sans JP',sans-serif;padding:5px 7px;border:1px solid #cbd5e1;border-radius:4px">
-            <button onclick="deleteGroup('${g.id}')" style="font:700 9px/1 'Noto Sans JP',sans-serif;color:#dc2626;background:#fff;border:1px solid #fca5a5;border-radius:4px;padding:5px 10px;cursor:pointer">削除</button>
+            <input type="text" value="${g.name}" onchange="renameGroup('${g.id}',this.value)" style="flex:1;font:700 11px/1 'Noto Sans JP',sans-serif;padding:5px 7px;border:1px solid #cbd5e1;border-radius:2px">
+            <button onclick="deleteGroup('${g.id}')" style="font:700 9px/1 'Noto Sans JP',sans-serif;color:#dc2626;background:#fff;border:1px solid #fca5a5;border-radius:2px;padding:5px 10px;cursor:pointer">削除</button>
           </div>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             ${DAYS.map(day=>{
